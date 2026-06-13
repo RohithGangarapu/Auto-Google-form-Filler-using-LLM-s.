@@ -1,0 +1,83 @@
+[
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "entry.622742693_sentinel",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  },
+  {
+    "tag": "div",
+    "role": "radio",
+    "type": null,
+    "name": null,
+    "aria_label": "Delhi",
+    "text": "",
+    "class": "Od2TWd hYsg7c"
+  },
+  {
+    "tag": "div",
+    "role": "radio",
+    "type": null,
+    "name": null,
+    "aria_label": "AP",
+    "text": "",
+    "class": "Od2TWd hYsg7c"
+  },
+  {
+    "tag": "div",
+    "role": "radio",
+    "type": null,
+    "name": null,
+    "aria_label": "Kerala",
+    "text": "",
+    "class": "Od2TWd hYsg7c"
+  },
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "fvv",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  },
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "partialResponse",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  },
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "pageHistory",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  },
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "fbzx",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  },
+  {
+    "tag": "input",
+    "role": null,
+    "type": "hidden",
+    "name": "submissionTimestamp",
+    "aria_label": null,
+    "text": "",
+    "class": ""
+  }
+]
