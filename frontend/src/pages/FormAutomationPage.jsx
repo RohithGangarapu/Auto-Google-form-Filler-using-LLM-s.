@@ -16,19 +16,28 @@ export function FormAutomationPage() {
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [modelError, setModelError] = useState("");
 
   const questionCount = session?.questions?.length || 0;
   const answerCount = useMemo(() => Object.keys(session?.answers || {}).length, [session]);
 
-  // Load available local models on mount
+  // Load available OpenRouter models on mount
   useEffect(() => {
     async function loadModels() {
       try {
         const data = await api.getModels();
-        setAvailableModels(data.available || []);
-        setSelectedModels(data.selected || []);
+        if (data.error) {
+          setModelError(data.error);
+          setAvailableModels([]);
+          setSelectedModels([]);
+        } else {
+          setAvailableModels(data.available || []);
+          setSelectedModels(data.selected || []);
+          setModelError("");
+        }
       } catch (err) {
         console.error("Failed to load models:", err);
+        setModelError("Failed to fetch available models.");
       }
     }
     loadModels();
@@ -110,11 +119,16 @@ export function FormAutomationPage() {
             />
           </label>
 
-          {/* Local Ollama voting models selection panel */}
-          {availableModels.length > 0 ? (
+          {/* OpenRouter voting models selection panel */}
+          {modelError ? (
+            <div className="model-selector-panel error" style={{ padding: "12px", border: "1px solid #ffd9d9", borderRadius: "8px", background: "#fff2f2", color: "#d32f2f" }}>
+              <span style={{ display: "block", fontSize: "0.86rem", fontWeight: "700", marginBottom: "4px" }}>OpenRouter API Key Needed</span>
+              <p style={{ margin: 0, fontSize: "0.8rem", lineHeight: "1.4" }}>{modelError}</p>
+            </div>
+          ) : availableModels.length > 0 ? (
             <div className="model-selector-panel" style={{ padding: "12px", border: "1px solid #d7dee5", borderRadius: "8px", background: "#fbfcfd" }}>
               <span style={{ display: "block", fontSize: "0.86rem", fontWeight: "700", color: "#4b5863", marginBottom: "8px" }}>
-                Select Voting Models (Local Ollama)
+                Select Voting Models (OpenRouter Open-Source)
               </span>
               <div className="model-checkbox-grid" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
                 {availableModels.map((model) => {
@@ -140,8 +154,8 @@ export function FormAutomationPage() {
             </div>
           ) : (
             <div className="model-selector-panel error" style={{ padding: "12px", border: "1px solid #ffd9d9", borderRadius: "8px", background: "#ffd9d9", color: "#4b1414" }}>
-              <span style={{ display: "block", fontSize: "0.86rem", fontWeight: "700", marginBottom: "4px" }}>Ollama Models</span>
-              <p style={{ margin: 0, fontSize: "0.8rem" }}>No local Ollama models found. Ensure your Ollama server is running locally on port 11434.</p>
+              <span style={{ display: "block", fontSize: "0.86rem", fontWeight: "700", marginBottom: "4px" }}>OpenRouter Models</span>
+              <p style={{ margin: 0, fontSize: "0.8rem" }}>No open-source models available. Ensure your API Key is set in backend/.env.</p>
             </div>
           )}
 
@@ -177,7 +191,7 @@ export function FormAutomationPage() {
                   setSession(await api.answer(session.id, context, selectedModels));
                 })
               }
-              title="Ask local Ollama models and vote"
+              title="Ask OpenRouter open-source models and vote"
             >
               <Bot size={18} />
               <span>Answer</span>

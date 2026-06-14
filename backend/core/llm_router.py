@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import os
 import re
 from collections import defaultdict
 from typing import Any
@@ -15,32 +16,35 @@ class LLMRouter:
     def __init__(
         self,
         models: list[str] | None = None,
-        ollama_url: str = "http://localhost:11434",
         model_weights: dict[str, float] | None = None,
         timeout_seconds: int = 90,
     ) -> None:
-        self.ollama_url = ollama_url.rstrip("/")
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
         
-        # Discover models dynamically if not specified
+        # Curated list of default models to use if not specified
         if models:
             self.models = models
         else:
-            self.models = self._discover_local_models()
+            self.models = [
+                "google/gemma-4-31b-it:free",
+                "qwen/qwen-2.5-72b-instruct",
+                "deepseek/deepseek-chat",
+            ]
             
         self.model_weights = model_weights or {model: 1.0 for model in self.models}
         self.timeout_seconds = timeout_seconds
 
-    def _discover_local_models(self) -> list[str]:
-        try:
-            response = requests.get(f"{self.ollama_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                models = [m["name"] for m in data.get("models", [])]
-                if models:
-                    return models[:3]
-        except Exception:
-            pass
-        return ["qwen2.5", "llama3", "mistral"]
+    @staticmethod
+    def get_available_models() -> list[str]:
+        return [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "google/gemma-4-31b-it:free",
+            "qwen/qwen3-coder:free",
+            "meta-llama/llama-3.2-3b-instruct:free",
+            "nousresearch/hermes-3-llama-3.1-405b:free",
+            "qwen/qwen-2.5-72b-instruct",
+            "deepseek/deepseek-chat",
+        ]
 
     def answer_question(self, question: Question, context: str = "") -> VotingResult:
         candidates: list[AnswerCandidate] = []
@@ -218,21 +222,41 @@ class LLMRouter:
         return best_option, best_score
 
     def _ask_model(self, model: str, question: Question, context: str) -> AnswerCandidate:
+        if not self.api_key:
+            raise ValueError("OPENROUTER_API_KEY is not set. Please configure it in backend/.env file.")
+
         prompt = self._build_prompt(question, context)
-        response = requests.post(
-            f"{self.ollama_url}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": 100
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/RohithGangarapu/Auto-Google-form-Filler-using-LLM-s",
+            "X-Title": "Auto Google Form Filler",
+        }
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
                 }
-            },
+            ]
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
             timeout=self.timeout_seconds,
         )
         response.raise_for_status()
-        raw_text = response.json().get("response", "")
+        
+        resp_json = response.json()
+        raw_text = ""
+        if "choices" in resp_json and len(resp_json["choices"]) > 0:
+            raw_text = resp_json["choices"][0].get("message", {}).get("content", "")
+            
         parsed = self._parse_model_json(raw_text)
         
         opt_val = parsed.get("option", "")

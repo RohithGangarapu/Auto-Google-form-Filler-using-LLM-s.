@@ -29,15 +29,14 @@ class FillAnswersRequest(BaseModel):
 def get_available_models() -> dict[str, Any]:
     try:
         router_instance = orchestrator.llm_agent.router
-        available = []
-        try:
-            resp = requests.get(f"{router_instance.ollama_url}/api/tags", timeout=3)
-            if resp.status_code == 200:
-                available = [m["name"] for m in resp.json().get("models", [])]
-        except Exception:
-            pass
+        if not router_instance.api_key:
+            return {
+                "available": [],
+                "selected": [],
+                "error": "OPENROUTER_API_KEY is not set. Please configure it in backend/.env file."
+            }
         return {
-            "available": available,
+            "available": router_instance.get_available_models(),
             "selected": router_instance.models
         }
     except Exception as exc:
