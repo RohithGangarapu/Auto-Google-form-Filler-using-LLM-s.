@@ -14,7 +14,8 @@ from models.question import Question, stable_id
 
 class SeleniumFormDriver:
     def __init__(self, headless: bool = False, implicit_wait_seconds: int = 3) -> None:
-        self.headless = headless
+        import os
+        self.headless = headless or os.environ.get("SELENIUM_HEADLESS", "").lower() == "true"
         self.implicit_wait_seconds = implicit_wait_seconds
         self.driver: WebDriver | None = None
 
@@ -24,6 +25,8 @@ class SeleniumFormDriver:
         options = ChromeOptions()
         if self.headless:
             options.add_argument("--headless=new")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
