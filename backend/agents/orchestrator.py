@@ -31,12 +31,12 @@ class FormAutomationOrchestrator:
         session.record("browser_opened_for_manual_auth")
         return session
 
-    def scrape_after_user_ready(self, session_id: str) -> FormSession:
+    def scrape_after_user_ready(self, session_id: str, mode: str = "auto") -> FormSession:
         session = self._session(session_id)
         browser_agent = self._browser_agent(session_id)
-        session.questions = browser_agent.scrape_questions_after_user_ready()
+        session.questions = browser_agent.scrape_questions_after_user_ready(mode=mode)
         session.status = "scraped"
-        session.record("questions_scraped", {"count": len(session.questions)})
+        session.record("questions_scraped", {"count": len(session.questions), "mode": mode})
         return session
 
     def answer_questions(

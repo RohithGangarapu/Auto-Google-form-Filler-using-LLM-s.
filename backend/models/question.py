@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid5, NAMESPACE_URL
 
 from pydantic import BaseModel, Field, computed_field
@@ -23,6 +23,8 @@ class Question(BaseModel):
     question: str
     options: list[str] = Field(default_factory=list)
     type: str = "radio"
+    selector: Optional[str] = None
+    placeholder: Optional[str] = None
 
     @computed_field
     @property

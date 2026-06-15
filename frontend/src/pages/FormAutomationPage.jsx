@@ -1,4 +1,4 @@
-import { Bot, ClipboardList, Play, RotateCw, Send, SquareMousePointer, X } from "lucide-react";
+import { Bot, ClipboardList, Play, RotateCw, Send, SquareMousePointer, X, Upload, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../api/client.js";
@@ -54,6 +54,7 @@ export function FormAutomationPage() {
   const [fillResults, setFillResults] = useState([]);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
+  const [scrapeMode, setScrapeMode] = useState("auto");
 
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
@@ -151,13 +152,54 @@ export function FormAutomationPage() {
             </button>
           </div>
 
+          <div className="options-row">
+            <label className="mode-selector-container">
+              <span>Scraping Mode</span>
+              <select
+                value={scrapeMode}
+                onChange={(e) => setScrapeMode(e.target.value)}
+                className="mode-select"
+              >
+                <option value="auto">Auto-detect Form Type</option>
+                <option value="google">Google Forms Scraper</option>
+                <option value="generic">Job Application / Generic DOM</option>
+              </select>
+            </label>
+
+            <div className="resume-upload-container">
+              <span>Resume (PDF/TXT)</span>
+              <label className={`resume-upload-button ${busyAction === "parse-resume" ? "disabled" : ""}`}>
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.md"
+                  disabled={disabled("parse-resume")}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    await runAction("parse-resume", async () => {
+                      const data = await api.parseResume(file);
+                      if (data?.text) {
+                        setContext(data.text);
+                      }
+                    });
+                  }}
+                  style={{ display: "none" }}
+                />
+                <Upload size={16} className={busyAction === "parse-resume" ? "spin" : ""} />
+                <span>
+                  {busyAction === "parse-resume" ? "Extracting..." : "Upload Resume"}
+                </span>
+              </label>
+            </div>
+          </div>
+
           <label className="context-field">
             <span>User context for LLMs</span>
             <textarea
               value={context}
               onChange={(event) => setContext(event.target.value)}
               placeholder="Optional facts the models should use when answering form questions."
-              rows={3}
+              rows={5}
             />
           </label>
 
@@ -249,7 +291,7 @@ export function FormAutomationPage() {
               disabled={!session?.id || disabled("scrape")}
               onClick={() =>
                 runAction("scrape", async () => {
-                  setSession(await api.scrape(session.id));
+                  setSession(await api.scrape(session.id, scrapeMode));
                 })
               }
               title="Scrape questions after manual login and CAPTCHA"

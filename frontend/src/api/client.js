@@ -29,8 +29,26 @@ export const api = {
   getSession(sessionId) {
     return request(`/sessions/${sessionId}`);
   },
-  scrape(sessionId) {
-    return request(`/sessions/${sessionId}/scrape`, { method: "POST" });
+  scrape(sessionId, mode = "auto") {
+    return request(`/sessions/${sessionId}/scrape`, {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    });
+  },
+  async parseResume(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await fetch(`${API_BASE_URL}/resume/parse`, {
+      method: "POST",
+      body: formData,
+    });
+    
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.detail || `Request failed with status ${response.status}`);
+    }
+    return data;
   },
   answer(sessionId, context, models = []) {
     return request(`/sessions/${sessionId}/answer`, {

@@ -274,6 +274,136 @@ class LLMRouter:
             raw_response=raw_text,
         )
 
+    def answer_questions_bulk(
+        self,
+        questions: list[Question],
+        context: str = "",
+    ) -> dict[str, VotingResult]:
+        candidates_by_question: dict[str, list[AnswerCandidate]] = {
+            q.id: [] for q in questions
+        }
+        
+        for model in self.models:
+            try:
+                model_answers = self._ask_model_bulk(model, questions, context)
+                for q_id, candidate in model_answers.items():
+                    if q_id in candidates_by_question:
+                        candidates_by_question[q_id].append(candidate)
+            except Exception as exc:
+                for q in questions:
+                    candidates_by_question[q.id].append(
+                        AnswerCandidate(
+                            question_id=q.id,
+                            model=model,
+                            option="",
+                            confidence=0.0,
+                            reasoning=f"Bulk model call failed: {exc}",
+                        )
+                    )
+                    
+        results = {}
+        for q in questions:
+            results[q.id] = self.aggregate(q, candidates_by_question[q.id])
+            
+        return results
+
+    def _ask_model_bulk(self, model: str, questions: list[Question], context: str) -> dict[str, AnswerCandidate]:
+        if not self.api_key:
+            raise ValueError("OPENROUTER_API_KEY is not set. Please configure it in backend/.env file.")
+
+        prompt = self._build_bulk_prompt(questions, context)
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/RohithGangarapu/Auto-Google-form-Filler-using-LLM-s",
+            "X-Title": "Auto Google Form Filler",
+        }
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=self.timeout_seconds,
+        )
+        response.raise_for_status()
+        
+        resp_json = response.json()
+        raw_text = ""
+        if "choices" in resp_json and len(resp_json["choices"]) > 0:
+            raw_text = resp_json["choices"][0].get("message", {}).get("content", "")
+            
+        parsed_bulk = self._parse_model_json(raw_text)
+        
+        candidates = {}
+        for question in questions:
+            q_data = parsed_bulk.get(question.id, {})
+            if not isinstance(q_data, dict):
+                q_data = {"option": q_data, "confidence": 0.5, "reasoning": ""}
+                
+            opt_val = q_data.get("option", "")
+            if isinstance(opt_val, list):
+                opt_str = ", ".join(str(o).strip() for o in opt_val)
+            else:
+                opt_str = str(opt_val).strip()
+                
+            candidates[question.id] = AnswerCandidate(
+                question_id=question.id,
+                model=model,
+                option=opt_str,
+                confidence=self._coerce_confidence(q_data.get("confidence", 0.0 if not opt_str else 0.5)),
+                reasoning=str(q_data.get("reasoning", "")).strip(),
+                raw_response=raw_text,
+            )
+            
+        return candidates
+
+    def _build_bulk_prompt(self, questions: list[Question], context: str) -> str:
+        fields_desc = []
+        for q in questions:
+            field_info = {
+                "id": q.id,
+                "label": q.question,
+                "type": q.type,
+            }
+            if q.options:
+                field_info["options"] = q.options
+            fields_desc.append(field_info)
+            
+        fields_json = json.dumps(fields_desc, indent=2)
+        
+        return (
+            "You are helping a user fill out a web form (such as a job application).\n"
+            "Use the provided User Context (like their resume or personal details) to answer all questions in the form.\n\n"
+            f"--- USER CONTEXT ---\n{context or 'No context provided.'}\n\n"
+            f"--- FORM FIELDS ---\n{fields_json}\n\n"
+            "--- INSTRUCTIONS ---\n"
+            "For each field, determine the appropriate response based on the user context:\n"
+            "1. For 'text' or 'paragraph' fields: Provide a direct, concise response.\n"
+            "2. For 'select' or 'radio' fields: Choose the exact option from the list of options that best matches. If none match, pick the closest match or leave empty if not required.\n"
+            "3. For 'checkbox' fields: Select one or more matching options, and return them as a comma-separated list (e.g. 'Option A, Option C').\n\n"
+            "Return ONLY a valid JSON object matching the following schema. Do NOT wrap it in HTML or write any explanatory text outside the JSON. "
+            "The root keys must be the exact field IDs, and each value must be an object with keys 'option', 'confidence' (value between 0.0 and 1.0), and 'reasoning'.\n\n"
+            "Example output format:\n"
+            "{\n"
+            "  \"field_0\": {\n"
+            "    \"option\": \"John Doe\",\n"
+            "    \"confidence\": 1.0,\n"
+            "    \"reasoning\": \"User's first and last name from context\"\n"
+            "  }\n"
+            "}\n"
+        )
+
     def _build_prompt(self, question: Question, context: str) -> str:
         options = question.options
         if question.type == "checkbox":

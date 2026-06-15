@@ -22,10 +22,7 @@ class LLMAgent:
             self.router.model_weights = {model: 1.0 for model in models}
             
         try:
-            return {
-                question.id: self.router.answer_question(question=question, context=context)
-                for question in questions
-            }
+            return self.router.answer_questions_bulk(questions=questions, context=context)
         finally:
             if models:
                 self.router.models = original_models

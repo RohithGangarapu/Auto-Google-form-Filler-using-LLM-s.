@@ -32,7 +32,7 @@ export function QuestionList({ questions = [], answers = {}, selectedAnswers = {
             </div>
 
             {/* Render interactive options (Radio & Checkbox) */}
-            {question.options?.length ? (
+            {question.options?.length && question.type !== "select" ? (
               <div className="option-row">
                 {question.options.map((option, idx) => {
                   let isSelected = false;
@@ -62,6 +62,24 @@ export function QuestionList({ questions = [], answers = {}, selectedAnswers = {
                     </button>
                   );
                 })}
+              </div>
+            ) : null}
+
+            {/* Render dropdown select fields */}
+            {question.type === "select" && question.options?.length ? (
+              <div className="select-answer-container">
+                <select
+                  value={currentSelection}
+                  onChange={(e) => onSelectOption(question.id, e.target.value)}
+                  className="dropdown-select"
+                >
+                  <option value="">-- Select option --</option>
+                  {question.options.map((option, idx) => (
+                    <option key={idx} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
             ) : null}
 

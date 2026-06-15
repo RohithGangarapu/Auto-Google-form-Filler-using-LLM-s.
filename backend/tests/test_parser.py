@@ -67,3 +67,18 @@ def test_voting_text_selects_highest_confidence() -> None:
     )
 
     assert result.selected_option == "I build AI agents for fun."
+
+
+def test_bulk_prompt_formatting() -> None:
+    router = LLMRouter(models=["a", "b"])
+    questions = [
+        Question(id="q1", question="What is your name?", type="text"),
+        Question(id="q2", question="What are your skills?", type="checkbox", options=["Python", "JS", "C++"])
+    ]
+    prompt = router._build_bulk_prompt(questions, context="My name is Rohith. I know Python and JS.")
+    
+    assert "What is your name?" in prompt
+    assert "What are your skills?" in prompt
+    assert "My name is Rohith. I know Python and JS." in prompt
+    assert "q1" in prompt
+    assert "q2" in prompt

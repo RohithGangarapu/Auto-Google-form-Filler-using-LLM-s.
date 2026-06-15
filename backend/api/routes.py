@@ -1,6 +1,8 @@
-from typing import Any
+from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from typing import Any, Optional
+
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, HttpUrl
 import requests
 
@@ -16,6 +18,10 @@ class CreateSessionRequest(BaseModel):
     url: HttpUrl
 
 
+class ScrapeRequest(BaseModel):
+    mode: str = "auto"
+
+
 class AnswerQuestionsRequest(BaseModel):
     context: str = ""
     models: list[str] = []
@@ -23,6 +29,35 @@ class AnswerQuestionsRequest(BaseModel):
 
 class FillAnswersRequest(BaseModel):
     answers: dict[str, Any] = {}
+
+
+@router.post("/resume/parse")
+async def parse_resume(file: UploadFile = File(...)) -> dict[str, str]:
+    content = await file.read()
+    filename = file.filename or ""
+    
+    if filename.lower().endswith(".pdf"):
+        try:
+            import io
+            from pypdf import PdfReader
+            pdf_file = io.BytesIO(content)
+            reader = PdfReader(pdf_file)
+            text = ""
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+            return {"text": text.strip()}
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Failed to parse PDF: {exc}")
+    elif filename.lower().endswith((".txt", ".md")):
+        try:
+            text = content.decode("utf-8")
+            return {"text": text.strip()}
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Failed to parse text file: {exc}")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload a PDF or TXT file.")
 
 
 @router.get("/models")
@@ -64,9 +99,10 @@ def get_session(session_id: str) -> FormSession:
 
 
 @router.post("/sessions/{session_id}/scrape", response_model=FormSession)
-def scrape_questions(session_id: str) -> FormSession:
+def scrape_questions(session_id: str, payload: Optional[ScrapeRequest] = None) -> FormSession:
+    mode = payload.mode if payload else "auto"
     try:
-        return orchestrator.scrape_after_user_ready(session_id)
+        return orchestrator.scrape_after_user_ready(session_id, mode=mode)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001

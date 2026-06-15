@@ -13,8 +13,8 @@ class BrowserAgent:
     def open_for_manual_auth(self, url: str) -> None:
         self.driver.open_url(url)
 
-    def scrape_questions_after_user_ready(self) -> list[Question]:
-        return self.driver.scrape_questions()
+    def scrape_questions_after_user_ready(self, mode: str = "auto") -> list[Question]:
+        return self.driver.scrape_questions(mode=mode)
 
     def fill_without_submitting(self, questions: list[Question], answers: dict[str, Any]) -> list[dict[str, Any]]:
         return self.driver.fill_answers(questions, answers)
