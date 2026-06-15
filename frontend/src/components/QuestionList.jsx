@@ -67,21 +67,13 @@ export function QuestionList({ questions = [], answers = {}, selectedAnswers = {
 
             {/* Render text input fields (Text & Paragraph) */}
             {question.type === "text" || question.type === "paragraph" ? (
-              <div className="text-answer-container" style={{ marginTop: "12px" }}>
+              <div className="text-answer-container">
                 {question.type === "paragraph" ? (
                   <textarea
                     value={currentSelection}
                     onChange={(e) => onSelectOption(question.id, e.target.value)}
                     placeholder="Provide long answer..."
                     rows={3}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      border: "1px solid #c7d0d9",
-                      background: "#fbfcfd",
-                      resize: "vertical"
-                    }}
                   />
                 ) : (
                   <input
@@ -89,13 +81,6 @@ export function QuestionList({ questions = [], answers = {}, selectedAnswers = {
                     value={currentSelection}
                     onChange={(e) => onSelectOption(question.id, e.target.value)}
                     placeholder="Provide short answer..."
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      border: "1px solid #c7d0d9",
-                      background: "#fbfcfd"
-                    }}
                   />
                 )}
               </div>
@@ -104,36 +89,36 @@ export function QuestionList({ questions = [], answers = {}, selectedAnswers = {
             {/* Render model predictions and breakdown */}
             {answer ? (
               <div className="answer-panel">
-                <div className="summary-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                <div className="summary-row">
                   <div>
-                    <p className="answer-label" style={{ margin: 0 }}>LLM Majority Choice</p>
-                    <strong style={{ display: "block", marginTop: "4px" }}>{answer.selected_option || "No answer voted"}</strong>
+                    <p className="answer-label">LLM Majority Choice</p>
+                    <strong>{answer.selected_option || "No answer voted"}</strong>
                   </div>
-                  <div className="confidence-badge" style={{ textAlign: "right" }}>
-                    <span className="answer-label" style={{ margin: 0 }}>Confidence</span>
-                    <strong style={{ display: "block", marginTop: "4px" }}>{Math.round((answer.confidence || 0) * 100)}%</strong>
+                  <div className="confidence-badge">
+                    <span className="answer-label">Confidence</span>
+                    <strong>{Math.round((answer.confidence || 0) * 100)}%</strong>
                   </div>
                 </div>
 
                 {answer.candidates && answer.candidates.length > 0 && (
-                  <details className="model-votes-details" style={{ marginTop: "12px", borderTop: "1px dashed #e3e8ed", paddingTop: "8px" }}>
-                    <summary style={{ cursor: "pointer", fontSize: "0.82rem", color: "#1d6f8f", fontWeight: "600", outline: "none" }}>
+                  <details className="model-votes-details">
+                    <summary>
                       View individual model votes
                     </summary>
-                    <div className="model-candidates-list" style={{ marginTop: "8px", display: "grid", gap: "8px" }}>
+                    <div className="model-candidates-list">
                       {answer.candidates.map((cand, cIdx) => (
-                        <div key={cIdx} className="model-candidate-card" style={{ padding: "8px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontSize: "0.86rem" }}>
-                          <div className="candidate-header" style={{ display: "flex", justifyContent: "space-between", fontWeight: "600", color: "#334155" }}>
+                        <div key={cIdx} className="model-candidate-card">
+                          <div className="candidate-header">
                             <span className="candidate-name">{cand.model}</span>
-                            <span className="candidate-conf" style={{ color: "#475569", fontSize: "0.8rem" }}>{Math.round(cand.confidence * 100)}% conf</span>
+                            <span className="candidate-conf">{Math.round(cand.confidence * 100)}% conf</span>
                           </div>
                           {cand.option && (
-                            <p className="candidate-option" style={{ margin: "4px 0 0", color: "#0f172a" }}>
+                            <p className="candidate-option">
                               Answer: <strong>{cand.option}</strong>
                             </p>
                           )}
                           {cand.reasoning && (
-                            <p className="candidate-reasoning" style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.8rem", fontStyle: "italic" }}>
+                            <p className="candidate-reasoning">
                               {cand.reasoning}
                             </p>
                           )}
